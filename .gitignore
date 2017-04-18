@@ -1,0 +1,4 @@
+client_secret.json
+*.csv
+env/*
+__pycache__
