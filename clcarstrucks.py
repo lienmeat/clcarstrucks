@@ -39,9 +39,12 @@ class CLCarsTrucks(Spider):
 
 
     def start_requests(self):
-        yield Request(self.proto + self.city + '.' + self.domain + '/search/stn/sss')
+        #build the initial request
+        yield Request(self.proto + self.city + '.' + self.domain + '/search/stn/sss?' + urlencode(self.getSearchArgs()))
+
 
     def getSearchArgs(self):
+        #todo: Doesn't support multiples of the same param.  Ok for now...
         args = {}
         for a in self.allowed_search_args:
             try:
@@ -53,77 +56,60 @@ class CLCarsTrucks(Spider):
         return args
 
     def parse(self, response):
-        urls = []
-        sargs = self.getSearchArgs()
 
-        args = "&" + urlencode(sargs)
-        for i in range(20):
-            tn = '?s=' + str(100*i) + args
-            urls.append(response.urljoin(tn))
-        for url in urls:
-            yield Request(url, callback=self.parse_main_page)
+        #grab the next page url from the paginator
+        nextp =  response.css('a.next::attr(href)').extract_first()
+        if nextp:
+            yield Request(self.proto + self.city + '.' + self.domain + nextp, callback=self.parse)
 
-    def parse_main_page(self, response):
+        #get all the links for the adds
         links = response.css('li.result-row a.hdrlnk::attr(href)').extract()
         for link in links:
+            #links are relative
             link = self.proto + self.city + '.' + self.domain + link
             yield Request(link, callback=self.parse_detail_page)
 
     def parse_detail_page(self, response):
-        attrs = []
-        try:
-            price = response.xpath('//*[@class = "price"]/text()').extract_first().replace("$", "")
-        except:
-            price = ""
-        attrs_l = response.xpath('//*[@class = "attrgroup"]/span').extract()
-        attrs = self.processATTRS(attrs_l)
-
-        title = response.xpath('//*[@id = "titletextonly"]/text()').extract_first()
-        mapaddress = response.css("div.mapaddress::text").extract_first()
-        map_url = response.css("p.mapaddress small a::attr(href)").extract_first()
-        post_time=response.css('p.postinginfo time::attr(datetime)').extract_first()
-
         item = {}
+
+        item['title'] = response.xpath('//*[@id = "titletextonly"]/text()').extract_first()
+        #if we have a title, we can continue, otherwise get out
+        if not item['title'] or len(item['title']) < 1:
+            return
+
+        try:
+            item['price'] = response.xpath('//*[@class = "price"]/text()').extract_first().replace("$", "")
+        except AttributeError:
+            item['price'] = ""
+
         item['post_url'] = response._url
-        item['price'] = price
-        item['address'] = mapaddress
-        item['map_url'] = map_url
-        try:
-            item['odometer'] = attrs['odometer']
-        except:
-            item['odometer'] = 0
-        try:
-            item['VIN'] = str(attrs['VIN'])
-        except:
-            item['VIN'] = ""
-        try:
-            item['title status'] = str(attrs['title status'])
-        except:
-            item['title status'] = ""
-        try:
-            item['transmission'] = str(attrs['transmission'])
-        except:
-            item['transmission'] = ""
+        item['address'] = response.css("div.mapaddress::text").extract_first()
+        item['map_url'] = response.css("p.mapaddress small a::attr(href)").extract_first()
+        item['post_time'] = response.css('p.postinginfo time::attr(datetime)').extract_first()
 
-        item['title'] = str(title)
-        item['post_time']=str(post_time)
-        try:
-            item['auto_descr_short'] = attrs['auto_descr_short']
-        except:
-            item['auto_descr_short'] = ""
-        yield item
+        attrs_l = response.xpath('//*[@class = "attrgroup"]/span').extract()
+        item = self.processATTRS(attrs_l, item)
 
-    def processATTRS(self, attrs):
-        ret = {}
+        if item['title']:
+            yield item
+
+    def processATTRS(self, attrs, item):
+        '''ATTRS are the attrgoup items at the right hand side that describe a car'''
+        #we only care about these attributes
+        allowed = ['odometer', 'VIN', 'title status', 'transmission', 'auto_descr_short']
+        attr_found = {}
         for a in attrs:
             a = a.replace("<span>", "").replace("</span>", "")
             parts = a.split("<b>", 1)
-            print(parts)
             if len(parts) > 1 or parts[0] == '':
                 prop = parts[0].rstrip(": ")
                 if prop == '':
                     prop = "auto_descr_short"
                 val = parts[1].replace("</b>", "")
-                if val != '':
-                    ret[prop] = val
-        return ret
+                attr_found[prop] = val
+        for i in allowed:
+            try:
+                item[i] = attr_found[i]
+            except KeyError:
+                item[i] = ""
+        return item
