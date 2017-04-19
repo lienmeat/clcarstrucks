@@ -13,7 +13,7 @@ ap.add_argument('csvfilename', metavar='csvfilename', type=str, help=".csv file 
 flags = ap.parse_args()
 
 # If modifying these scopes, delete your previously saved credentials
-# at ~/.credentials/drive-python-quickstart.json
+# at ~/.credentials/drive-python-uploadcsv.json
 SCOPES = ['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/spreadsheets']
 CLIENT_SECRET_FILE = 'client_secret.json'
 APPLICATION_NAME = 'Drive API Python Quickstart'
@@ -32,8 +32,7 @@ def get_credentials():
     credential_dir = os.path.join(home_dir, '.credentials')
     if not os.path.exists(credential_dir):
         os.makedirs(credential_dir)
-    credential_path = os.path.join(credential_dir,
-                                   'drive-python-upload.json')
+    credential_path = os.path.join(credential_dir, 'drive-python-uploadcsv.json')
 
     store = Storage(credential_path)
     credentials = store.get()
@@ -46,26 +45,6 @@ def get_credentials():
             credentials = tools.run(flow, store)
         print('Storing credentials to ' + credential_path)
     return credentials
-
-def list10():
-    """Shows basic usage of the Google Drive API.
-
-    Creates a Google Drive API service object and outputs the names and IDs
-    for up to 10 files.
-    """
-    credentials = get_credentials()
-    http = credentials.authorize(httplib2.Http())
-    service = discovery.build('drive', 'v3', http=http)
-
-    results = service.files().list(
-        pageSize=10,fields="nextPageToken, files(id, name)").execute()
-    items = results.get('files', [])
-    if not items:
-        print('No files found.')
-    else:
-        print('Files:')
-        for item in items:
-            print('{0} ({1})'.format(item['name'], item['id']))
 
 def uploadCSV(csvfilename):
     DST_FILENAME = flags.csvfilename
@@ -86,7 +65,7 @@ def uploadCSV(csvfilename):
         print('No files found.')
         rsp = drive_service.files().create(body=METADATA, media_body=SRC_FILENAME).execute()
     else:
-        print('File:')
+        print('File found:')
         print('{0}'.format(items[0]['id']))
         #since this file exists already, if we wish to import without appending, we must clear the document.
         #At least, I can't find a way to get it to overwrite on update, unless it's a metadata value
@@ -103,8 +82,7 @@ def uploadCSV(csvfilename):
         print('Imported %r to %r (as %s)' % (SRC_FILENAME, DST_FILENAME, rsp['mimeType']))
 
 def main():
-    # list10()
-    uploadCSV("clcarstrucks")
+    uploadCSV(flags.csvfilename)
 
 if __name__ == '__main__':
     main()
