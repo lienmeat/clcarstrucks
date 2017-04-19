@@ -3,7 +3,7 @@ Craigslist cars and trucks search data scraper and google sheets importer
 
 ## Getting started
 You should set this up in a [virtualenv](http://python-guide-pt-br.readthedocs.io/en/latest/dev/virtualenvs/), which you should be able to install in a few commands (instructions vary by OS).
-1. then do `virtualenv env` and then `source env\bin\activate` to create and activate a python virtualenv
+1. then do `virtualenv env` and then `source env/bin/activate` to create and activate a python virtualenv
 2. `pip install -r requirements.txt` to install the project's python dependencies
 
 At this point you should have everything you need to scrape craigslist working to a point where you can generate .csv files on your local machine.  
