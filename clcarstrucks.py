@@ -40,7 +40,7 @@ class CLCarsTrucks(Spider):
 
     def start_requests(self):
         #build the initial request
-        yield Request(self.proto + self.city + '.' + self.domain + '/search/stn/sss?' + urlencode(self.getSearchArgs()))
+        yield Request(self.proto + self.city + '.' + self.domain + '/search/cta?' + urlencode(self.getSearchArgs()))
 
 
     def getSearchArgs(self):
