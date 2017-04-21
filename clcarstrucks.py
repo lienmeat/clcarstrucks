@@ -8,7 +8,7 @@ class CLCarsTrucks(Spider):
     #cl url city name
     proto = 'https://'
     domain = 'craigslist.org'
-
+    idx = 0
     allowed_search_args = [
         'auto_make_model',
         'auto_title_status',
@@ -91,6 +91,8 @@ class CLCarsTrucks(Spider):
         item = self.processATTRS(attrs_l, item)
 
         if item['title']:
+            self.idx += 1
+            item['idx'] = self.idx 
             yield item
 
     def processATTRS(self, attrs, item):
